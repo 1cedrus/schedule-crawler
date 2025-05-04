@@ -25,6 +25,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	scheduleResp, err := qldt.FetchDSTKB(tokenResp.AccessToken, tokenResp.Name)
+    if err != nil {
+        fmt.Fprintf(w, "Error occured when fetching schedule data!\n%v\n", err)
+        return
+    }
 
 	now := time.Now()
 	if len(t) > 0 {
@@ -40,9 +44,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var curTuanTKB qldt.TuanTKB
 	for _, value := range scheduleResp.Data.DSTuanTKB {
 		startTime, err := time.Parse(layout, value.NgayBatDau)
+		if err != nil {
+			fmt.Fprintf(w, "Error occured when parsing schedule data!\n%v\n", err)
+            continue 
+		}
+
 		endTime, err := time.Parse(layout, value.NgayKetThuc)
 		if err != nil {
 			fmt.Fprintf(w, "Error occured when parsing schedule data!\n%v\n", err)
+            continue
 		}
 
 		if now.After(startTime) && now.Before(endTime.Add(24*time.Hour-time.Nanosecond)) {
