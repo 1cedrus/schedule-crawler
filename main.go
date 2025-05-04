@@ -16,7 +16,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    fmt.Fprintf(w, "Token: %s\n", tokenResp.AccessToken)
+    fmt.Fprintf(w, "Token: %s\nExpired at: %s", tokenResp.AccessToken, tokenResp.ExpiresAt)
 }
 
 func main() {

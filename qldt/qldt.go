@@ -1,15 +1,25 @@
 package qldt
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
-const QLDT_LOGIN_URL = "https://qldt.ptit.edu.vn/api/auth/login"
+const (
+    QLDT_LOGIN_URL = "https://qldt.ptit.edu.vn/api/auth/login"
+    QLDT_DS_TKB_URL = "https://qldt.ptit.edu.vn/api/sch/w-locdstkbtuanusertheohocky"
+)
+
+var (
+    Cache = make(map[string]any)
+)
 
 func FetchToken(r *http.Request) (*TokenResponse, error) {
     user, pass, ok := r.BasicAuth()
@@ -17,6 +27,25 @@ func FetchToken(r *http.Request) (*TokenResponse, error) {
         return nil, errors.New("missing basic auth credentials")
     }
 
+    h := sha256.Sum256([]byte(fmt.Sprintf("%s|%s", user, pass)))
+
+    if (Cache[string(h[:])] != nil) {
+        cachedTokenResp, ok := (Cache[string(h[:])]).(*TokenResponse)
+        if !ok {
+            goto StartFetching
+        }
+
+        cachedTime, err := time.Parse(time.RFC1123, cachedTokenResp.ExpiresAt)
+        if err != nil {
+            return nil, err
+        }
+
+        if cachedTime.After(time.Now()) {
+            return cachedTokenResp, nil
+        }
+    }
+
+StartFetching:
     f := url.Values{
         "username": {user},
         "password": {pass},
@@ -53,6 +82,9 @@ func FetchToken(r *http.Request) (*TokenResponse, error) {
         if err := json.Unmarshal(bytes, &tokenResp); err != nil {
             return nil, err
         }
+
+        Cache[string(h[:])] = &tokenResp;
+
         return &tokenResp, nil
 
     default:
