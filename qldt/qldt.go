@@ -1,6 +1,7 @@
 package qldt
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,57 @@ const (
 var (
     Cache = make(map[string]any)
 )
+
+func FetchDSTKB(accessToken string, name string) (*ScheduleResponse, error) {
+    h := sha256.Sum256([]byte(fmt.Sprintf("%s|%s", name, "DSTKB")))
+
+    if Cache[string(h[:])] != nil {
+        cachedDSTKB, ok := Cache[string(h[:])].(*ScheduleResponse)
+        if !ok {
+            goto StartFetching
+        }
+
+        return cachedDSTKB, nil
+    }
+
+StartFetching:
+    var reqBody ScheduleRequestBody
+    reqBody.Filter.HocKy = "20242" // Fix this to the current semester
+    reqBody.Filter.TenHocKy = ""
+
+    reqBodyBytes, err := json.Marshal(reqBody)
+    if err != nil {
+        return nil, err
+    }
+
+    req, err := http.NewRequest("POST", QLDT_DS_TKB_URL, bytes.NewReader(reqBodyBytes))
+    if err != nil {
+        return nil, err
+    }
+
+    req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+    req.Header.Set("Content-Type", "application/json")
+
+    res, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    data, err := io.ReadAll(res.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    var scheduleResp ScheduleResponse
+    if err := json.Unmarshal(data, &scheduleResp); err != nil {
+        return nil, err
+    }
+
+    Cache[string(h[:])] = &scheduleResp
+
+    return &scheduleResp, nil
+}
 
 func FetchToken(r *http.Request) (*TokenResponse, error) {
     user, pass, ok := r.BasicAuth()
@@ -59,27 +111,27 @@ StartFetching:
 
     defer res.Body.Close()
 
-    bytes, err := io.ReadAll(res.Body)
+    data, err := io.ReadAll(res.Body)
     if err != nil {
         return nil, err
     }
 
     var baseResp Response
-    if err := json.Unmarshal(bytes, &baseResp); err != nil {
+    if err := json.Unmarshal(data, &baseResp); err != nil {
 		return nil, err
 	}
 
     switch baseResp.Code {
     case "403":
         var errResp TokenErrorResponse
-        if err := json.Unmarshal(bytes, &errResp); err != nil {
+        if err := json.Unmarshal(data, &errResp); err != nil {
 			return nil, err
 		}
         return nil, errors.New(errResp.Message)
 
     case "200":
         var tokenResp TokenResponse
-        if err := json.Unmarshal(bytes, &tokenResp); err != nil {
+        if err := json.Unmarshal(data, &tokenResp); err != nil {
             return nil, err
         }
 

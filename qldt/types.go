@@ -54,13 +54,13 @@ type TuanTKB struct {
 }
 
 type ThoiKhoaBieu struct {
-    IsHkLienTruoc       bool `json:"is_hk_lien_truoc"`
+    IsHkLienTruoc       uint8 `json:"is_hk_lien_truoc"`
     ThuKieuSo           uint8 `json:"thu_kieu_so"`
     TietBatDau          uint8 `json:"tiet_bat_dau"`
     SoTiet              uint8 `json:"so_tiet"`
     MaMon               string `json:"ma_mon"`
     TenMon              string `json:"ten_mon"`
-    SoTinChi            uint8 `json:"so_tin_chi"`
+    SoTinChi            string `json:"so_tin_chi"`
     MaNhom              string `json:"ma_nhom"`
     MaToTh              string `json:"ma_to_th"`
     MaToHopPhan         string `json:"ma_to_hop"`
@@ -81,6 +81,13 @@ type ScheduleData struct {
     DSTietTrongNgay     []TietTrongNgay `json:"ds_tiet_trong_ngay"`
     DSTuanTKB           []TuanTKB `json:"ds_tuan_tkb"`
     ThongBao            string `json:"thong_bao"`
+}
+
+type ScheduleRequestBody struct {
+    Filter struct {
+        HocKy           string `json:"hoc_ky"`
+        TenHocKy        string `json:"ten_hoc_ky"`
+    } `json:"filter"`
 }
 
 type ScheduleResponse struct {
