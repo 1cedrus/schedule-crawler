@@ -12,7 +12,7 @@ import (
 func handler(w http.ResponseWriter, r *http.Request) {
     tokenResp, err := qldt.FetchToken(r)
     if err != nil {
-        fmt.Fprintf(w, "Error occured when fetching token %v\n", err)
+        fmt.Fprintf(w, "Error occured when fetching token!\n%v\n", err)
         return
     }
 

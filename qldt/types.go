@@ -1,5 +1,7 @@
 package qldt
 
+import "encoding/json"
+
 type LichThi struct {
     SoThuTu             uint8 `json:"so_thu_tu"`
     KyThi               string `json:"ky_thi"`
@@ -33,11 +35,6 @@ type LichThiResponse struct {
     Data                LichThiData `json:"data"`
     ThongBaoGhiChu      string `json:"thong_bao_ghi_chu"`
     Response
-}
-
-type Response struct {
-    Code                string `json:"code"`
-    Result              string `json:"result"`
 }
 
 type TietTrongNgay struct {
@@ -110,3 +107,28 @@ type TokenErrorResponse struct {
     Response
 }
 
+type Code string
+
+type Response struct {
+    Code                Code `json:"code"`
+}
+
+func (s *Code) UnmarshalJSON(bytes []byte) error {
+    if bytes[0] == '"' {
+        var str string
+        if err := json.Unmarshal(bytes, &str); err != nil {
+            return err
+        }
+
+        *s = Code(str)
+    } else {
+        var num json.Number
+        if err := json.Unmarshal(bytes, &num); err != nil {
+            return err
+        }
+
+        *s = Code(num.String())
+    }   
+
+    return nil
+}
