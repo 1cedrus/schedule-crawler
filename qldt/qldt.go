@@ -16,11 +16,66 @@ import (
 const (
     QLDT_LOGIN_URL = "https://qldt.ptit.edu.vn/api/auth/login"
     QLDT_DS_TKB_URL = "https://qldt.ptit.edu.vn/api/sch/w-locdstkbtuanusertheohocky"
+    QLDT_EXAM_URL = "https://qldt.ptit.edu.vn/api/epm/w-locdslichthisvtheohocky"
 )
 
 var (
     Cache = make(map[string]any)
 )
+
+func FetchLichThi(accessToken string, name string) (*LichThiResponse, error) {
+    h := sha256.Sum256([]byte(fmt.Sprintf("%s|%s", name, "DSLichThi")))
+
+    if Cache[string(h[:])] != nil {
+        cachedDSLichThi, ok := Cache[string(h[:])].(*LichThiResponse)
+        if !ok {
+            goto StartFetching
+        }
+
+        return cachedDSLichThi, nil
+    }
+
+StartFetching:
+    var reqBody LichThiRequestBody
+    reqBody.Filter.HocKy = "20242" // Fix this to the current semester
+    reqBody.Filter.IsGiuaHocKy = false
+    reqBody.Additional.Paging.Limit = 100
+    reqBody.Additional.Paging.Page = 1
+    reqBody.Additional.Ordering = []Ordering{}
+
+    reqBodyBytes, err := json.Marshal(reqBody)
+    if err != nil {
+        return nil, err
+    }
+
+    req, err := http.NewRequest("POST", QLDT_EXAM_URL, bytes.NewReader(reqBodyBytes))
+    if err != nil {
+        return nil, err
+    }
+
+    req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+    req.Header.Set("Content-Type", "application/json")
+
+    res, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    data, err := io.ReadAll(res.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    var lichThiResponse LichThiResponse
+    if err := json.Unmarshal(data, &lichThiResponse); err != nil {
+        return nil, err
+    }
+
+    Cache[string(h[:])] = &lichThiResponse
+
+    return &lichThiResponse, nil
+}
 
 func FetchDSTKB(accessToken string, name string) (*ScheduleResponse, error) {
     h := sha256.Sum256([]byte(fmt.Sprintf("%s|%s", name, "DSTKB")))

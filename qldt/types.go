@@ -20,7 +20,7 @@ type LichThi struct {
     ToThi               string `json:"to_thi"`
     GhiChuHtt           string `json:"ghi_chu_htt"`
     GhiChuDuThi         string `json:"ghi_chu_du_thi"`
-    SiSo                string `json:"si_so"`
+    SiSo                uint `json:"si_so"`
     NhomThi             string `json:"nhom_thi"`
 }
 
@@ -35,6 +35,25 @@ type LichThiResponse struct {
     Data                LichThiData `json:"data"`
     ThongBaoGhiChu      string `json:"thong_bao_ghi_chu"`
     Response
+}
+
+type LichThiRequestBody struct {
+    Filter struct {
+        HocKy           string `json:"hoc_ky"`
+        IsGiuaHocKy     bool `json:"ten_hoc_ky"`
+    } `json:"filter"`
+    Additional struct {
+        Paging struct {
+            Page        uint `json:"page"`
+            Limit       uint `json:"limit"`
+        } `json:"paging"`
+        Ordering []Ordering `json:"ordering"`
+    }
+}
+
+type Ordering struct {
+    Name        string `json:"name"` 
+    OrderType   string `json:"order"`
 }
 
 type TietTrongNgay struct {

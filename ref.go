@@ -8,7 +8,7 @@ type Spot struct {
 
 var (
 	Colums        = 103
-	NgaySpot      = Spot{1, 81, 9}
+	NgaySpot      = Spot{1, 81, 10}
 	ThoiGianSpot  = Spot{2, 3, 13}
 	TietSpot      = Spot{2, 23, 1}
 	MonSpot       = Spot{1, 36, 31}
@@ -17,6 +17,14 @@ var (
 	GiangVienSpot = Spot{1, 80, 21}
 	NhomSpot      = Spot{2, 74, 27}
 	NhomTHSpot    = Spot{3, 77, 24}
+
+    ExamColums        = 93
+    ExamNgaySpot      = Spot{1, 78, 10}
+    ExamThoiGianSpot  = Spot{5, 6, 5}
+    ExamSoPhutSpot    = Spot{5, 20, 3}
+    ExamMonSpot       = Spot{4, 34, 50}
+    ExamPhongSpot     = Spot{5, 36, 50}
+    ExamHinhThucThiSpot = Spot{6, 44, 45}
 )
 
 const RefTop = `
@@ -57,8 +65,8 @@ const RefExam = `
 ┌─────────────┬───────────┬───────────────────────────────────────────────┤  Mon 05 May  ├─┐
 │  Thời gian  │  Số phút  │          Thông tin                            └──────────────┘ │
 ├─────────────┼───────────┼────────────────────────────────────────────────────────────────┤
-│             │           │ Môn: Đảm bảo chất lượng phần mềm                               │
-│    10:00    │    120    │ Phòng: 203-A3                       Hình thức thi: Bài tập lớn │
-│             │           │ Cơ sở: Ngọc Trục                                               │
+│             │           │ Môn: A                                                         │
+│    10:00    │    60     │ Phòng: B                                                       │
+│             │           │ Hình thức thi: C                                               │
 └─────────────┴───────────┴────────────────────────────────────────────────────────────────┘
 `

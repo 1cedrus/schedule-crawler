@@ -15,6 +15,31 @@ import (
 const layout = "02/01/2006"
 const layout2 = "2006-01-02T04:05:06"
 
+func examHandler(w http.ResponseWriter, r *http.Request) {
+    tokenResp, err := qldt.FetchToken(r)
+    if err != nil {
+        w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+        w.WriteHeader(http.StatusUnauthorized)
+        fmt.Fprintf(w, "Error occured when fetching token!\n%v\n", err)
+        return
+    }
+
+    lichThiResp, err := qldt.FetchLichThi(tokenResp.AccessToken, tokenResp.Name)
+    if err != nil {
+        fmt.Fprintf(w, "Error occured when fetching exam data!\n%v\n", err)
+        return
+    }
+    for _, lichThi := range lichThiResp.Data.DsLichThi {
+        examBytes, err := generateExamSchedule(lichThi)
+        if err != nil {
+            fmt.Fprintf(w, "Error occured when generating exam data!\n%v\n", err)
+            return
+        }
+
+        fmt.Fprintf(w, "%v", string(examBytes))
+    }
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	t := r.PathValue("t")
 
@@ -106,6 +131,42 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%v", string(scheduleBytes))
 }
 
+func generateExamSchedule(lichThi qldt.LichThi) ([]rune, error) {
+    ngayThi, err := time.Parse(layout, lichThi.NgayThi);
+    if err != nil {
+        return nil, fmt.Errorf("Error occured when parsing exam data!\n%v\n", err)
+    }
+
+    examBytes := []rune(RefExam)
+
+    var tmp bytes.Buffer
+    fmt.Fprintf(&tmp, "%v %.02d %v", (ngayThi.Weekday()).String()[:3], ngayThi.Day(), ngayThi.Month())
+
+    copy(examBytes[(ExamColums*ExamNgaySpot.Row)+ExamNgaySpot.StartIndex:(ExamColums*ExamNgaySpot.Row)+ExamNgaySpot.StartIndex+ExamNgaySpot.Length], []rune(tmp.String()))
+
+    tmp.Reset()
+    fmt.Fprintf(&tmp, "%v", lichThi.GioBatDau)
+    copy(examBytes[(ExamColums*ExamThoiGianSpot.Row)+ExamThoiGianSpot.StartIndex:(ExamColums*ExamThoiGianSpot.Row)+ExamThoiGianSpot.StartIndex+ExamThoiGianSpot.Length], []rune(tmp.String()))
+
+    tmp.Reset()
+    fmt.Fprintf(&tmp, "%v", lichThi.SoPhut)
+    copy(examBytes[(ExamColums*ExamSoPhutSpot.Row)+ExamSoPhutSpot.StartIndex:(ExamColums*ExamSoPhutSpot.Row)+ExamSoPhutSpot.StartIndex+ExamSoPhutSpot.Length], []rune(tmp.String()))
+
+    tmp.Reset()
+    fmt.Fprintf(&tmp, "%v", lichThi.TenMon)
+    copy(examBytes[(ExamColums*ExamMonSpot.Row)+ExamMonSpot.StartIndex:(ExamColums*ExamMonSpot.Row)+ExamMonSpot.StartIndex+ExamMonSpot.Length], []rune(tmp.String()))
+
+    tmp.Reset()
+    fmt.Fprintf(&tmp, "%v", lichThi.MaPhong)
+    copy(examBytes[(ExamColums*ExamPhongSpot.Row)+ExamPhongSpot.StartIndex:(ExamColums*ExamPhongSpot.Row)+ExamPhongSpot.StartIndex+ExamPhongSpot.Length], []rune(tmp.String()))
+
+    tmp.Reset()
+    fmt.Fprintf(&tmp, "%v", lichThi.HinhThucThi)
+    copy(examBytes[(ExamColums*ExamHinhThucThiSpot.Row)+ExamHinhThucThiSpot.StartIndex:(ExamColums*ExamHinhThucThiSpot.Row)+ExamHinhThucThiSpot.StartIndex+ExamHinhThucThiSpot.Length], []rune(tmp.String()))
+
+    return examBytes, nil
+}
+
 func generateSchedule(tkb []qldt.ThoiKhoaBieu, scheduleResp *qldt.ScheduleResponse) ([]rune, error) {
 	ngayHoc, err := time.Parse(layout2, tkb[0].NgayHoc)
 	if err != nil {
@@ -193,6 +254,7 @@ func generateSchedule(tkb []qldt.ThoiKhoaBieu, scheduleResp *qldt.ScheduleRespon
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handler)
+	mux.HandleFunc("/exam", examHandler)
 	mux.HandleFunc("/{t}", handler)
 
 	listener, err := net.Listen("tcp", ":80")
