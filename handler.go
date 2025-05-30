@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"no.name/qldt"
+	"github.com/1cedrus/schedule-crawler/qldt"
 )
 
 const l02_01_2006 = "02/01/2006"
@@ -17,50 +17,50 @@ func ensureAuthenticated(w http.ResponseWriter, r *http.Request) (*qldt.TokenRes
 	res, err := qldt.FetchToken(r)
 
 	if err != nil {
-        // For browser to request basic credentials from user.
+		// For browser to request basic credentials from user.
 		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		w.WriteHeader(http.StatusUnauthorized)
 
 		return nil, err
 	}
 
-    return res, nil
+	return res, nil
 }
 
 func examHandler(w http.ResponseWriter, r *http.Request) {
-    tokenResp, err := ensureAuthenticated(w, r)
-    if err != nil {
-        fmt.Fprintf(w, "[ERROR]: %v\n", err)
-        return
-    }
+	tokenResp, err := ensureAuthenticated(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "[ERROR]: %v\n", err)
+		return
+	}
 
-    lichThiResp, err := qldt.FetchLichThi(tokenResp.AccessToken, tokenResp.Name)
-    if err != nil {
-        fmt.Fprintf(w, "[ERROR]: %v\n", err)
-        return
-    }
+	lichThiResp, err := qldt.FetchLichThi(tokenResp.AccessToken, tokenResp.Name)
+	if err != nil {
+		fmt.Fprintf(w, "[ERROR]: %v\n", err)
+		return
+	}
 
-    for _, lichThi := range lichThiResp.Data.DsLichThi {
-        examBytes, err := generateExamSchedule(lichThi)
-        if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
-            return
-        }
+	for _, lichThi := range lichThiResp.Data.DsLichThi {
+		examBytes, err := generateExamSchedule(lichThi)
+		if err != nil {
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			return
+		}
 
-        fmt.Fprintf(w, "%v", string(examBytes))
-    }
+		fmt.Fprintf(w, "%v", string(examBytes))
+	}
 }
 
 func scheduleHandler(w http.ResponseWriter, r *http.Request) {
-    tokenResp, err := ensureAuthenticated(w, r)
-    if err != nil {
-        fmt.Fprintf(w, "[ERROR]: %v\n", err)
-        return
-    }
+	tokenResp, err := ensureAuthenticated(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "[ERROR]: %v\n", err)
+		return
+	}
 
 	scheduleResp, err := qldt.FetchDSTKB(tokenResp.AccessToken, tokenResp.Name)
 	if err != nil {
-        fmt.Fprintf(w, "[ERROR]: %v\n", err)
+		fmt.Fprintf(w, "[ERROR]: %v\n", err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 	if len(t) > 0 {
 		rt, err := strconv.Atoi(t)
 		if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
 			return
 		}
 
@@ -81,13 +81,13 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 	for _, value := range scheduleResp.Data.DSTuanTKB {
 		startTime, err := time.Parse(l02_01_2006, value.NgayBatDau)
 		if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
 			continue
 		}
 
 		endTime, err := time.Parse(l02_01_2006, value.NgayKetThuc)
 		if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
 			continue
 		}
 
@@ -106,13 +106,13 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 
 		ngayHoc, err := time.Parse(l2006_01_02T04_05_06, value.NgayHoc)
 		if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
 			continue
 		}
 
 		currNgayHoc, err := time.Parse(l2006_01_02T04_05_06, tempTKB[0].NgayHoc)
 		if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
 			continue
 		}
 
@@ -122,58 +122,58 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		scheduleBytes, err := generateSchedule(tempTKB, scheduleResp)
-        if err != nil {
-            fmt.Fprintf(w, "[ERROR]: %v\n", err)
-            return
-        }
+		if err != nil {
+			fmt.Fprintf(w, "[ERROR]: %v\n", err)
+			return
+		}
 
 		tempTKB = append([]qldt.ThoiKhoaBieu{}, value)
 		fmt.Fprintf(w, "%v", string(scheduleBytes))
 	}
 
-    scheduleBytes, err := generateSchedule(tempTKB, scheduleResp)
-    if err != nil {
-        fmt.Fprintf(w, "[ERROR]: %v\n", err)
-        return
-    }
+	scheduleBytes, err := generateSchedule(tempTKB, scheduleResp)
+	if err != nil {
+		fmt.Fprintf(w, "[ERROR]: %v\n", err)
+		return
+	}
 
 	fmt.Fprintf(w, "%v", string(scheduleBytes))
 }
 
 func generateExamSchedule(lichThi qldt.LichThi) ([]rune, error) {
-    ngayThi, err := time.Parse(l02_01_2006, lichThi.NgayThi);
-    if err != nil {
-        return nil, err
-    }
+	ngayThi, err := time.Parse(l02_01_2006, lichThi.NgayThi)
+	if err != nil {
+		return nil, err
+	}
 
-    examBytes := []rune(RefExam)
+	examBytes := []rune(RefExam)
 
-    var tmp bytes.Buffer
-    fmt.Fprintf(&tmp, "%v %.02d %v", (ngayThi.Weekday()).String()[:3], ngayThi.Day(), ngayThi.Month())
+	var tmp bytes.Buffer
+	fmt.Fprintf(&tmp, "%v %.02d %v", (ngayThi.Weekday()).String()[:3], ngayThi.Day(), ngayThi.Month())
 
-    copy(examBytes[(ExamColums*ExamNgaySpot.Row)+ExamNgaySpot.StartIndex:(ExamColums*ExamNgaySpot.Row)+ExamNgaySpot.StartIndex+ExamNgaySpot.Length], []rune(tmp.String()))
+	copy(examBytes[(ExamColums*ExamNgaySpot.Row)+ExamNgaySpot.StartIndex:(ExamColums*ExamNgaySpot.Row)+ExamNgaySpot.StartIndex+ExamNgaySpot.Length], []rune(tmp.String()))
 
-    tmp.Reset()
-    fmt.Fprintf(&tmp, "%v", lichThi.GioBatDau)
-    copy(examBytes[(ExamColums*ExamThoiGianSpot.Row)+ExamThoiGianSpot.StartIndex:(ExamColums*ExamThoiGianSpot.Row)+ExamThoiGianSpot.StartIndex+ExamThoiGianSpot.Length], []rune(tmp.String()))
+	tmp.Reset()
+	fmt.Fprintf(&tmp, "%v", lichThi.GioBatDau)
+	copy(examBytes[(ExamColums*ExamThoiGianSpot.Row)+ExamThoiGianSpot.StartIndex:(ExamColums*ExamThoiGianSpot.Row)+ExamThoiGianSpot.StartIndex+ExamThoiGianSpot.Length], []rune(tmp.String()))
 
-    tmp.Reset()
-    fmt.Fprintf(&tmp, "%v", lichThi.SoPhut)
-    copy(examBytes[(ExamColums*ExamSoPhutSpot.Row)+ExamSoPhutSpot.StartIndex:(ExamColums*ExamSoPhutSpot.Row)+ExamSoPhutSpot.StartIndex+ExamSoPhutSpot.Length], []rune(tmp.String()))
+	tmp.Reset()
+	fmt.Fprintf(&tmp, "%v", lichThi.SoPhut)
+	copy(examBytes[(ExamColums*ExamSoPhutSpot.Row)+ExamSoPhutSpot.StartIndex:(ExamColums*ExamSoPhutSpot.Row)+ExamSoPhutSpot.StartIndex+ExamSoPhutSpot.Length], []rune(tmp.String()))
 
-    tmp.Reset()
-    fmt.Fprintf(&tmp, "%v", lichThi.TenMon)
-    copy(examBytes[(ExamColums*ExamMonSpot.Row)+ExamMonSpot.StartIndex:(ExamColums*ExamMonSpot.Row)+ExamMonSpot.StartIndex+ExamMonSpot.Length], []rune(tmp.String()))
+	tmp.Reset()
+	fmt.Fprintf(&tmp, "%v", lichThi.TenMon)
+	copy(examBytes[(ExamColums*ExamMonSpot.Row)+ExamMonSpot.StartIndex:(ExamColums*ExamMonSpot.Row)+ExamMonSpot.StartIndex+ExamMonSpot.Length], []rune(tmp.String()))
 
-    tmp.Reset()
-    fmt.Fprintf(&tmp, "%v", lichThi.MaPhong)
-    copy(examBytes[(ExamColums*ExamPhongSpot.Row)+ExamPhongSpot.StartIndex:(ExamColums*ExamPhongSpot.Row)+ExamPhongSpot.StartIndex+ExamPhongSpot.Length], []rune(tmp.String()))
+	tmp.Reset()
+	fmt.Fprintf(&tmp, "%v", lichThi.MaPhong)
+	copy(examBytes[(ExamColums*ExamPhongSpot.Row)+ExamPhongSpot.StartIndex:(ExamColums*ExamPhongSpot.Row)+ExamPhongSpot.StartIndex+ExamPhongSpot.Length], []rune(tmp.String()))
 
-    tmp.Reset()
-    fmt.Fprintf(&tmp, "%v", lichThi.HinhThucThi)
-    copy(examBytes[(ExamColums*ExamHinhThucThiSpot.Row)+ExamHinhThucThiSpot.StartIndex:(ExamColums*ExamHinhThucThiSpot.Row)+ExamHinhThucThiSpot.StartIndex+ExamHinhThucThiSpot.Length], []rune(tmp.String()))
+	tmp.Reset()
+	fmt.Fprintf(&tmp, "%v", lichThi.HinhThucThi)
+	copy(examBytes[(ExamColums*ExamHinhThucThiSpot.Row)+ExamHinhThucThiSpot.StartIndex:(ExamColums*ExamHinhThucThiSpot.Row)+ExamHinhThucThiSpot.StartIndex+ExamHinhThucThiSpot.Length], []rune(tmp.String()))
 
-    return examBytes, nil
+	return examBytes, nil
 }
 
 func generateSchedule(tkb []qldt.ThoiKhoaBieu, scheduleResp *qldt.ScheduleResponse) ([]rune, error) {
@@ -259,4 +259,3 @@ func generateSchedule(tkb []qldt.ThoiKhoaBieu, scheduleResp *qldt.ScheduleRespon
 
 	return scheduleBytes, nil
 }
-
